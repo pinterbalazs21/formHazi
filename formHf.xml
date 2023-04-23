@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
+<nta>
+	<declaration>const int N = 10;
+
+// konstansok
+const int tCount = 1; // traveller num
+//const int STATION_COUNT = 11; // station num
+
+typedef int [0,tCount] tid_type;
+typedef int [0,11] sid_type;
+const sid_type startPoints [tCount] = { 12 }; // utazók kezdőpontjai
+
+
+// Megosztott adatok
+station_type visited[tCount+1];
+bool stopped[tCount+1];
+bool usedSpecial[tCount+1];
+bool canEnterSpecial[tCount+1];
+
+
+//szomszedsagi matrix, allomasok es tavolsagokhoz
+const matrix int[11][11] = 
+{
+	{0 , 5, 0, 0, 0, 0, 0,15, 0, 0, 0, 0},	//0	Arpad
+	{5 , 0,11, 0, 4, 7, 0, 0, 0, 0, 0, 0},	//1	Nyugati
+	{0 ,11, 0, 2, 5, 0, 0, 0, 0, 0, 0, 0},	//2	Szell
+	{0 , 0, 2, 0, 0, 0, 0, 0, 0, 0, 5, 0},	//3	Deli
+	{0 , 4, 5, 0, 0, 3, 0, 0, 0,10, 0, 0},	//4	Deak
+	{0 , 7, 0, 0, 3, 0, 2, 0,13, 0, 0, 0},	//5	Blaha
+	{0 , 0, 0, 0, 0, 2, 0, 2, 9, 0, 0, 0},	//6	Keleti
+	{15, 0, 0, 0, 0, 0, 2, 0, 0, 9, 0, 0},	//7	Pusk
+	{0 , 0, 0, 0, 0,13, 9, 0, 0, 0, 4, 0},	//8	Moricz
+	{0 , 0, 0, 0,10, 0, 0, 9, 0, 0, 0, 9},	//9	Nepliget
+	{0 , 0, 0, 5, 0, 0, 0, 0, 4, 0, 0,10},	//10 	Kelen
+	{0 , 0, 0, 0, 0, 0, 0, 0, 0, 9,10, 0},	//11 	Info
+}
+</declaration>
+	<template>
+		<name x="5" y="5">Traveller</name>
+		<declaration>// Place local declarations here.
+
+// Number of voted participants
+int[0,N] voted = 0;
+
+// Votes from the participants, index 0 for the coordinator, 1..N for the participants
+// Values: 0 for no vote yet, 1 for No, 2 for Yes
+int[0,2] collected_votes[N+1];
+
+// Initialize votes
+void init_votes() {
+    int[0,N+1] i;
+    for (i=0; i&lt;=N; i++) {
+        collected_votes[i]=0;
+    }
+}
+
+// Update votes in case of timeout
+void update_votes() {
+    int[0,N+1] i;
+    for (i=0; i&lt;=N; i++) {
+        if (collected_votes[i]==0) {
+            collected_votes[i]:=No;
+        }
+    }
+}
+
+// Checking "No" votes
+bool exists_No_vote() {
+    int[0,N+1] i;
+    for (i=0; i&lt;=N; i++) {
+        if (collected_votes[i]==No) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Clock for checking timeout
+clock cclock;
+
+// Timeout for waiting for the votes
+const int C_TO = 4;
+
+</declaration>
+		<location id="id0" x="-1258" y="-1207">
+			<name x="-1306" y="-1231">Start</name>
+			<urgent/>
+		</location>
+		<location id="id1" x="-1062" y="-1207">
+			<name x="-1045" y="-1232">Ready</name>
+			<urgent/>
+		</location>
+		<location id="id2" x="-1062" y="-1360">
+			<name x="-1072" y="-1394">Step</name>
+		</location>
+		<location id="id3" x="-782" y="-1207">
+			<name x="-792" y="-1241">Stop</name>
+		</location>
+		<branchpoint id="id4" x="-918" y="-1207">
+		</branchpoint>
+		<init ref="id0"/>
+		<transition>
+			<source ref="id4"/>
+			<target ref="id3"/>
+		</transition>
+		<transition>
+			<source ref="id4"/>
+			<target ref="id2"/>
+			<nail x="-918" y="-1360"/>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id4"/>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id1"/>
+		</transition>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id1"/>
+		</transition>
+	</template>
+	<template>
+		<name>Station</name>
+		<parameter>pid_type pid</parameter>
+		<declaration>// Place local declarations here.
+
+// Clock for timely voting
+clock pclock;
+
+// Deadline for local voting
+const int T_VOTE = 3;
+</declaration>
+		<location id="id5" x="-760" y="-264">
+			<name x="-816" y="-288">Failed</name>
+		</location>
+		<location id="id6" x="-560" y="96">
+			<name x="-640" y="72">Committed</name>
+		</location>
+		<location id="id7" x="-776" y="96">
+			<name x="-840" y="72">Aborted</name>
+		</location>
+		<location id="id8" x="-640" y="0">
+			<name x="-696" y="-32">Decide</name>
+			<urgent/>
+		</location>
+		<location id="id9" x="-640" y="-80">
+			<name x="-688" y="-104">Wait</name>
+		</location>
+		<location id="id10" x="-640" y="-208">
+			<name x="-688" y="-224">Vote</name>
+			<label kind="invariant" x="-624" y="-208">pclock&lt;=T_VOTE</label>
+		</location>
+		<location id="id11" x="-640" y="-304">
+			<name x="-688" y="-336">Start</name>
+		</location>
+		<init ref="id11"/>
+		<transition>
+			<source ref="id11"/>
+			<target ref="id5"/>
+			<nail x="-760" y="-304"/>
+		</transition>
+		<transition>
+			<source ref="id8"/>
+			<target ref="id6"/>
+			<label kind="guard" x="-616" y="-24">decision==Commit</label>
+			<nail x="-560" y="0"/>
+		</transition>
+		<transition>
+			<source ref="id8"/>
+			<target ref="id7"/>
+			<label kind="guard" x="-840" y="-24">decision==Abort</label>
+			<nail x="-776" y="0"/>
+		</transition>
+		<transition>
+			<source ref="id9"/>
+			<target ref="id8"/>
+			<label kind="synchronisation" x="-632" y="-64">decide?</label>
+		</transition>
+		<transition>
+			<source ref="id10"/>
+			<target ref="id9"/>
+			<label kind="select" x="-632" y="-176">myvote : vote_type</label>
+			<label kind="synchronisation" x="-632" y="-128">vote!</label>
+			<label kind="assignment" x="-632" y="-160">part_vote:=myvote,
+part_pid:=pid</label>
+		</transition>
+		<transition>
+			<source ref="id11"/>
+			<target ref="id10"/>
+			<label kind="synchronisation" x="-632" y="-280">vote_req?</label>
+			<label kind="assignment" x="-632" y="-264">pclock:=0</label>
+		</transition>
+	</template>
+	<system>// Place template instantiations here.
+
+// Processes of the system
+system Traveler, Station;    </system>
+	<queries>
+		<query>
+			<formula></formula>
+			<comment></comment>
+		</query>
+	</queries>
+</nta>
